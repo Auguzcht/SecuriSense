@@ -3,7 +3,7 @@ import { useRef, useEffect } from 'react';
 const Squares = ({
   direction = 'right',
   speed = 1,
-  borderColor = '#999',
+  borderColor = '#ffffffff',
   squareSize = 40,
   hoverFillColor = '#222'
 }) => {
@@ -37,10 +37,22 @@ const Squares = ({
       const startX = Math.floor(gridOffset.current.x / squareSize) * squareSize;
       const startY = Math.floor(gridOffset.current.y / squareSize) * squareSize;
 
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const maxDistance = Math.sqrt(centerX ** 2 + centerY ** 2);
+
       for (let x = startX; x < canvas.width + squareSize; x += squareSize) {
         for (let y = startY; y < canvas.height + squareSize; y += squareSize) {
           const squareX = x - (gridOffset.current.x % squareSize);
           const squareY = y - (gridOffset.current.y % squareSize);
+
+          // Calculate distance from center for fade effect
+          const squareCenterX = squareX + squareSize / 2;
+          const squareCenterY = squareY + squareSize / 2;
+          const distanceFromCenter = Math.sqrt(
+            (squareCenterX - centerX) ** 2 + (squareCenterY - centerY) ** 2
+          );
+          const fadeAmount = Math.max(0, Math.min(1, 1 - (distanceFromCenter / maxDistance)));
 
           if (
             hoveredSquareRef.current &&
@@ -48,31 +60,21 @@ const Squares = ({
             Math.floor((y - startY) / squareSize) === hoveredSquareRef.current.y
           ) {
             ctx.fillStyle = hoverFillColor;
+            ctx.globalAlpha = fadeAmount;
             ctx.fillRect(squareX, squareY, squareSize, squareSize);
+            ctx.globalAlpha = 1;
           }
 
           ctx.strokeStyle = borderColor;
+          ctx.globalAlpha = fadeAmount;
           ctx.strokeRect(squareX, squareY, squareSize, squareSize);
+          ctx.globalAlpha = 1;
         }
       }
-
-      /* const gradient = ctx.createRadialGradient(
-        canvas.width / 2,
-        canvas.height / 2,
-        0,
-        canvas.width / 2,
-        canvas.height / 2,
-        Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2
-      );
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      gradient.addColorStop(1, '#060010');
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height); */
     };
 
     const updateAnimation = () => {
-      const effectiveSpeed = Math.max(speed, 0.1);
+      const effectiveSpeed = Math.max(speed, 1.5) * 0.1;
       switch (direction) {
         case 'right':
           gridOffset.current.x = (gridOffset.current.x - effectiveSpeed + squareSize) % squareSize;
