@@ -3,22 +3,32 @@ import './App.css';
 import Squares from './components/Squares';
 import NavBar from './components/NavBar';
 import Home from './sections/Home';
+import PhishingDetector from './sections/Scanner';
+import About from './sections/About';
+import Contact from './sections/Contact';
+import Footer from './sections/Footer';
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <div className="absolute overflow-x-hidden inset-0 z-0 h-screen w-screen transform bg-white bg-[radial-gradient(60%_120%_at_50%_50%,#8EC1CC_50%,#336571_100%)]">
-      <NavBar />
-      <Squares 
-        speed={0.5} 
-        squareSize={40}
-        direction="diagonal"
-        borderColor="rgba(251, 251, 251, 0.4)"
-        hoverFillColor="rgba(125, 125, 246, 0.33)"
-      />
+    <div className="relative min-h-screen w-full overflow-x-hidden">
+      {/* Background Layer */}
+      <div className="fixed inset-0 -z-10 w-full h-full">
+        <div className="relative inset-0 w-full h-full overflow-x-hidden
+             bg-[radial-gradient(ellipse_100%_100%_at_50%_10%,#c6d6ff_10%,transparent_100%)] bg-transparent">
+        </div>
+      </div>
 
-      <div></div>
+      {/* Foreground Content */}
+      <div>
+        <NavBar />
+        <div className='flex flex-col gap-20'>
+          <Home />
+          <PhishingDetector/>
+        <About/>
+        <Contact/>
+        <Footer/>
+        </div>
+      </div>
     </div>
   );
 }
