@@ -19,6 +19,7 @@ const AnimatedContent = ({
   onComplete
 }) => {
   const ref = useRef(null);
+  const footerReached = useRef(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -28,13 +29,30 @@ const AnimatedContent = ({
     const offset = reverse ? -distance : distance;
     const startPct = (1 - threshold) * 100;
 
+    // Initial state
     gsap.set(el, {
       [axis]: offset,
       scale,
-      opacity: animateOpacity ? initialOpacity : 1
+      opacity: animateOpacity ? initialOpacity : 1,
     });
 
-    gsap.to(el, {
+    // Watch for footer visibility
+    const footer = document.querySelector('footer');
+    if (footer) {
+      ScrollTrigger.create({
+        trigger: footer,
+        start: 'top bottom',
+        onEnter: () => {
+          footerReached.current = true;
+        },
+        onLeaveBack: () => {
+          footerReached.current = false;
+        },
+      });
+    }
+
+    // Main animation
+    const animation = gsap.to(el, {
       [axis]: 0,
       scale: 1,
       opacity: 1,
@@ -45,14 +63,54 @@ const AnimatedContent = ({
       scrollTrigger: {
         trigger: el,
         start: `top ${startPct}%`,
-        toggleActions: 'play none none none',
-        once: true
-      }
+        end: 'bottom top',
+        markers: false,
+        onEnter: () => {
+          gsap.to(el, {
+            [axis]: 0,
+            opacity: 1,
+            scale: 1,
+            duration,
+            ease,
+          });
+        },
+        onLeave: () => {
+          // Only fade out once footer is reached
+          if (footerReached.current) {
+            gsap.to(el, {
+              [axis]: offset,
+              opacity: animateOpacity ? initialOpacity : 1,
+              duration,
+              ease,
+            });
+          }
+        },
+        onEnterBack: () => {
+          gsap.to(el, {
+            [axis]: 0,
+            opacity: 1,
+            scale: 1,
+            duration,
+            ease,
+          });
+        },
+        onLeaveBack: () => {
+          if (footerReached.current) {
+            gsap.to(el, {
+              [axis]: offset,
+              opacity: animateOpacity ? initialOpacity : 1,
+              duration,
+              ease,
+            });
+          }
+        },
+      },
     });
 
     return () => {
-      ScrollTrigger.getAll().forEach(t => t.kill());
-      gsap.killTweensOf(el);
+      if (animation.scrollTrigger) animation.scrollTrigger.kill();
+      animation.kill();
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     };
   }, [
     distance,
@@ -65,10 +123,13 @@ const AnimatedContent = ({
     scale,
     threshold,
     delay,
-    onComplete
+    onComplete,
   ]);
 
   return <div ref={ref}>{children}</div>;
 };
 
 export default AnimatedContent;
+
+
+

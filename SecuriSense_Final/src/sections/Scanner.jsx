@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { Upload, FileText, AlertTriangle, Shield, Mail, Trash2 } from 'lucide-react';
 import AnimatedContent from "../components/AnimatedComponents";
+import ScrollReveal from "../components/ScrollReveal";
+
 import "../mockData/result.js"
 
 export default function PhishingDetector() {
@@ -54,13 +56,22 @@ export default function PhishingDetector() {
   const gaugeInfo = result ? getGaugeColor(result.legitimacyScore) : null;
 
   return (
-    <div className="py-20 px-4 pt-30" id="detector">
+    <div className="py-10 px-4" id="detector">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12 animate-fade-in overflow-hidden"> 
-          <h1 className="text-6xl font-bold mb-4 text-[#042046] bg-clip-text">
-            Phishing Detector
-          </h1>
-
+          <AnimatedContent  direction="horizontal"
+                reverse={true}
+                duration={1.2}
+                ease="power3.out"
+                initialOpacity={0.1}
+                animateOpacity
+                scale={1.1}
+                threshold={0.2}
+                delay={0.10}>
+                  <h2 className="text-5xl md:text-6xl font-bold text-[#042046] mb-12 text-center">
+                    Phishing Detector
+                  </h2>
+        </AnimatedContent>
         </div>
 
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/50 animate-slide-up">
@@ -301,31 +312,4 @@ export default function PhishingDetector() {
       `}</style>
     </div>
   );
-}
-
-const highlightText = (text, indicators) => {
-  if (!indicators || indicators.length === 0) return text;
-
-  let highlightedText = text;
-
-  indicators.forEach(indicator => {
-    const colorMap = {
-      urgency: 'bg-yellow-200 text-yellow-900',
-      link: 'bg-red-200 text-red-900',
-      sensitive: 'bg-orange-200 text-orange-900'
-    };
-
-    const regex = new RegExp(`(${escapeRegExp(indicator.text)})`, 'gi');
-    highlightedText = highlightedText.replace(
-      regex,
-      `<span class="${colorMap[indicator.type]} font-semibold px-1 rounded">${indicator.text}</span>`
-    );
-  });
-
-  return highlightedText;
-};
-
-// Escape special regex characters
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

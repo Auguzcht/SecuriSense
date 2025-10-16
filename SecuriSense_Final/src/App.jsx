@@ -15,6 +15,14 @@ function App() {
       <div className="fixed inset-0 -z-10 w-full h-full">
         <div className="relative inset-0 w-full h-full overflow-x-hidden
              bg-[radial-gradient(ellipse_100%_100%_at_50%_10%,#c6d6ff_10%,transparent_100%)] bg-transparent">
+               <Squares
+        speed={0.5} 
+squareSize={40}
+direction='diagonal' // up, down, left, right, diagonal
+borderColor='#fff'
+hoverFillColor='#222'>
+
+        </Squares>
         </div>
       </div>
 

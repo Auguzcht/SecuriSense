@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import AnimatedContent from "../components/AnimatedComponents";
+import ScrollReveal from "../components/ScrollReveal";
+
 
 export default function ContactUs() {
   const [formData, setFormData] = useState({
@@ -52,21 +54,31 @@ export default function ContactUs() {
   );
 
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center px-6 md:px-12 pt-30" id="contact">
-      <h1 className="text-5xl md:text-6xl font-bold text-[#042046] mb-12 text-center">
-        Contact Us
-      </h1>
+    <section className="min-h-screen flex flex-col items-center justify-center md:px-12" id="contact">
+      <AnimatedContent  direction="horizontal"
+                reverse={true}
+                duration={1.2}
+                ease="power3.out"
+                initialOpacity={0.1}
+                animateOpacity
+                scale={1.1}
+                threshold={0.2}
+                delay={0.10}>
+                  <h2 className="text-5xl md:text-6xl font-bold text-[#042046] mb-12 text-center">
+                    Contact Us
+                  </h2>
+        </AnimatedContent>
 
       <AnimatedContent distance={150}
-  direction="vertical"
-  reverse={true}
-  duration={1.2}
-  ease="power3.out"
-  initialOpacity={0.1}
-  animateOpacity
-  scale={1.1}
-  threshold={0.2}
-  delay={0.10}>
+          direction="horizontal"
+          reverse={true}
+          duration={1.2}
+          ease="power3.out"
+          initialOpacity={0.1}
+          animateOpacity
+          scale={1.1}
+          threshold={0.2}
+          delay={0.10}>
         <div className="flex flex-col md:flex-row justify-center items-start gap-8 w-full max-w-6xl bg-white rounded-3xl shadow-lg p-8">
         <div className="bg-white rounded-3xl p-8 w-full md:w-1/2">
           <p className="text-gray-500 mb-6 text-center">
