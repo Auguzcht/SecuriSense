@@ -2,5 +2,6 @@ export const NavBarMenu = [
  { id: 1, label: "Home", href: "#home" },
   { id: 2, label: "Detector", href: "#detector" },
   { id: 3, label: "About", href: "#about" },
-  { id: 4, label: "Contact", href: "#contact" },
+  { id: 4, label: "Team", href: "#team" },
+  { id: 5, label: "Contact", href: "#contact" },
 ];
