@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -20,6 +20,7 @@
     "@tailwindcss/vite": "^4.1.14",
     "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
+    "dependencies": "^0.0.1",
     "framer-motion": "^12.23.22",
     "gsap": "^3.13.0",
     "lucide-react": "^0.545.0",
