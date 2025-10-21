@@ -41,12 +41,23 @@ const NavBar = () => {
         scrolled ? "bg-blue-200/40 backdrop-blur-md" : "bg-transparent"
       }`}
     >
-      <div className="flex items-center gap-2 sm:gap-4">
-        <img src={LogoSvg} alt="SecuriSense" width={80} height={80} className="text-indigo-600" />
-        <span className="text-1xl sm:text-2xl font-bold text-[#042046]">
+      {/* Make logo and text clickable to home */}
+      <a 
+        href="#home" 
+        onClick={(e) => handleSmoothScroll(e, "#home")}
+        className="flex items-center gap-2 sm:gap-4 group"
+      >
+        <img 
+          src={LogoSvg} 
+          alt="SecuriSense" 
+          width={80} 
+          height={80} 
+          className="text-[#4079ff] transition-transform duration-300 group-hover:scale-105" 
+        />
+        <span className="text-1xl sm:text-2xl font-bold text-[#042046] transition-colors duration-300 group-hover:text-[#4079ff]">
           SecuriSense
         </span>
-      </div>
+      </a>
 
       <ul className="hidden md:flex items-center gap-4 sm:gap-6 lg:gap-20 text-[#042046] font-bold">
         {NavBarMenu.map((item, index) => (
@@ -58,10 +69,10 @@ const NavBar = () => {
                 item.button
                   ? `px-4 py-2 rounded-md transition duration-200 ${
                       item.button === "primary"
-                        ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                        : "border border-indigo-600 text-indigo-600 hover:bg-indigo-50"
+                        ? "bg-[#4079ff] text-white hover:bg-[#164260]"
+                        : "border border-[#4079ff] text-[#4079ff] hover:bg-[#4079ff]/10"
                     }`
-                  : "hover:text-indigo-500 text-xl transition-colors duration-200"
+                  : "hover:text-[#4079ff] text-xl transition-colors duration-200"
               }`}
             >
               {item.label}

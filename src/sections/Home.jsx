@@ -55,16 +55,29 @@ const Home = () => {
             <a href="#detector">
               <Button
               variant="contained"
+              className="gradient-btn from-orange-500 to-red-500"
               sx={{
-                background: "linear-gradient(to bottom right, #f97316, #ef4444)",
+                position: "relative",
+                overflow: "hidden",
                 color: "white",
-                px: 3,  
+                px: 4,  
                 py: 1.5,
+                borderRadius: "12px",
+                fontWeight: "600",
+                letterSpacing: "0.5px",
+                fontSize: "1rem",
                 transition: "all 0.3s ease-in-out",
+                background: "linear-gradient(90deg, #f97316, #ef4444, #f97316)",
+                backgroundSize: "200% 100%",
+                backgroundPosition: "0% center",
                 "&:hover": {
-                  transform: "scale(1.05)",
-                  boxShadow: "0 8px 20px rgba(25,118,210,0.3)",
+                  transform: "translateY(-3px)",
+                  boxShadow: "0 8px 20px rgba(239, 68, 68, 0.3)",
+                  backgroundPosition: "100% center",
                 },
+                "&:active": {
+                  transform: "translateY(0px)",
+                }
               }}>
                 Try Detector
               </Button>
@@ -73,23 +86,33 @@ const Home = () => {
             <a href="#about">
               <Button
                 variant="outlined"
+                className="outline-btn"
                 sx={{
-                  color: "#f97316",
-                  borderColor: "#f97316",
-                  px: 3,
-                  py: 1.5,
+                  color: "#4079ff",
+                  borderColor: "#4079ff",
+                  borderWidth: "2px",
+                  px: 4,
+                  py: 1.45,
+                  borderRadius: "12px",
+                  fontWeight: "600",
+                  letterSpacing: "0.5px",
+                  fontSize: "1rem",
                   transition: "all 0.3s ease-in-out",
                   "&:hover": {
-                    transform: "scale(1.05)",
-                    boxShadow: "0 8px 20px rgba(25,118,210,0.3)",
-                    backgroundColor: "#f97316",
-                    color: "white",
+                    borderColor: "#4079ff",
+                    background: "rgba(64, 121, 255, 0.05)",
+                    transform: "translateY(-3px)",
+                    boxShadow: "0 8px 20px rgba(64, 121, 255, 0.15)",
+                    color: "#4079ff",
                   },
+                  "&:active": {
+                    transform: "translateY(0px)",
+                  }
                 }}
               >
                 Learn More
               </Button>
-          </a>
+            </a>
             </div>
           </div>
                 </AnimatedContent>
@@ -107,7 +130,17 @@ const Home = () => {
                 threshold={0.2}
                 delay={0.10}>
                    <div className="flex justify-center">
-        <img src={RobotSvg} alt="AI Robot" className="w-full max-w-[700px] h-auto pt-10 floating" />
+        <img 
+          src={RobotSvg} 
+          alt="AI Robot" 
+          className="w-full max-w-[900px] h-auto pt-10 floating" 
+          style={{ width: "auto", 
+              height: "80vh",
+              maxHeight: "850px",
+              marginRight: "-30%",
+              transform: "scale(1.4)"
+            }}
+        />
       </div>
 
                 </AnimatedContent>

@@ -8,7 +8,7 @@ import AnimatedContent from '../components/AnimatedComponents';
 
 const Team = () => {
   return (
-    <section className="w-full flex justify-center items-center min-h-screen px-8 pt-12">
+    <section className="w-full flex justify-center items-center min-h-screen px-8 pt-12" id="team">
       <div className="w-full max-w-7xl">
         <AnimatedContent direction="horizontal" reverse={true} duration={1.2} ease="power3.out" initialOpacity={0.1} animateOpacity scale={1.1} threshold={0.2} delay={0.10}>
           <h2 className="text-5xl md:text-6xl font-bold text-[#042046] mb-12 text-center">

@@ -72,7 +72,7 @@ const About = () => {
                 Advanced NLP Detection
               </h3>
               <p className="text-gray-600 text-sm text-justify flex-grow">
-                Leverages BERT transformer models achieving 98.99%+ accuracy in identifying phishing attempts through contextual language analysis.
+                Leverages BERT transformer models achieving 99.53% accuracy in identifying phishing attempts through contextual language analysis.
               </p>
             </div>
           </AnimatedContent>
