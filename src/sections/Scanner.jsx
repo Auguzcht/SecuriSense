@@ -15,6 +15,127 @@ import DangerousIcon from '@mui/icons-material/Dangerous';
 import "./style.css";
 import AnimatedContent from '../components/AnimatedComponents';
 
+// API configuration
+const HF_API_URL = "https://api-inference.huggingface.co/models/Auguzcht/securisense-phishing-detection";
+const HF_API_KEY = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+
+// Function to extract key patterns from text using regex
+const extractPatterns = (text) => {
+  const patterns = [];
+  
+  // Common phishing patterns
+  const urgencyWords = /urgent|immediate|alert|warning|limited time|act now|expires?|verify|confirm|suspended|disabled|blocked/gi;
+  const suspiciousLinks = /http[s]?:\/\/(?!www\.(?:google|facebook|twitter|linkedin|microsoft|apple|amazon)\.com)[^\s]+/gi;
+  const personalInfoRequests = /password|username|login|social security|ssn|credit card|bank account|pin|security question/gi;
+  const unusualFormatting = /[A-Z]{5,}|[!]{2,}|\$[A-Z]+\$|\*\*[^*]+\*\*/g;
+  const grammarIssues = /we is|you is|they is|he are|she are|it are|kindly? do the needful|revert back|please\s+(?:to\s+)?(?:do|make|send)|we appreciate you to/gi;
+
+  // Check for urgency language
+  const urgencyMatches = text.match(urgencyWords) || [];
+  if (urgencyMatches.length > 0) {
+    patterns.push({ 
+      type: 'Urgency Language', 
+      severity: urgencyMatches.length > 5 ? 'high' : 'medium', 
+      icon: <BoltOutlinedIcon />, 
+      count: urgencyMatches.length,
+      matches: [...new Set(urgencyMatches)]
+    });
+  }
+
+  // Check for suspicious links
+  const linkMatches = text.match(suspiciousLinks) || [];
+  if (linkMatches.length > 0) {
+    patterns.push({ 
+      type: 'Suspicious Link', 
+      severity: 'high', 
+      icon: <LinkOutlinedIcon />, 
+      count: linkMatches.length,
+      matches: [...new Set(linkMatches)]
+    });
+  }
+
+  // Check for personal info requests
+  const personalInfoMatches = text.match(personalInfoRequests) || [];
+  if (personalInfoMatches.length > 0) {
+    patterns.push({ 
+      type: 'Personal Info Request', 
+      severity: 'high', 
+      icon: <LockOutlinedIcon />, 
+      count: personalInfoMatches.length,
+      matches: [...new Set(personalInfoMatches)]
+    });
+  }
+
+  // Check for unusual formatting
+  const formattingMatches = text.match(unusualFormatting) || [];
+  if (formattingMatches.length > 0) {
+    patterns.push({ 
+      type: 'Unusual Formatting', 
+      severity: 'low', 
+      icon: <AutoFixHighOutlinedIcon />, 
+      count: formattingMatches.length,
+      matches: [...new Set(formattingMatches)]
+    });
+  }
+
+  // Check for grammar issues
+  const grammarMatches = text.match(grammarIssues) || [];
+  if (grammarMatches.length > 0) {
+    patterns.push({ 
+      type: 'Grammar Issues', 
+      severity: 'medium', 
+      icon: <EditNoteOutlinedIcon />, 
+      count: grammarMatches.length,
+      matches: [...new Set(grammarMatches)]
+    });
+  }
+
+  return patterns;
+};
+
+// Function to call Hugging Face API
+const analyzeTextWithModel = async (text) => {
+  try {
+    console.log("Calling Hugging Face API with key:", HF_API_KEY.substring(0, 5) + "...");
+    
+    const response = await fetch(HF_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${HF_API_KEY}`
+      },
+      body: JSON.stringify({ 
+        inputs: text,
+        options: { wait_for_model: true }
+      }),
+    });
+    
+    console.log("API Response Status:", response.status);
+    
+    if (!response.ok) {
+      if (response.status === 503) {
+        return { error: "Model is loading, please try again in a moment" };
+      }
+      
+      // Try to get the error message from the response
+      try {
+        const errorData = await response.json();
+        console.log("Error response data:", errorData);
+        return { error: errorData.error || `API request failed with status: ${response.status}` };
+      } catch (e) {
+        throw new Error(`API request failed with status: ${response.status}`);
+      }
+    }
+    
+    const data = await response.json();
+    console.log("API response data:", data);
+    return data;
+    
+  } catch (error) {
+    console.error("Error calling Hugging Face API:", error);
+    return { error: error.message };
+  }
+};
 
 function InputSection({ inputText, setInputText, isAnalyzing, handleAnalyze, handleFileUpload, handleClear, uploadedFile, fileInputRef }) {
   return (
@@ -606,18 +727,30 @@ function PatternDetailModal({ pattern, onClose, inputText }) {
   if (!pattern) return null;
 
   const getThreateningSections = () => {
-    const sections = [];
-    if (pattern.type === 'Urgency Language') {
-      sections.push({ text: 'URGENT: Your account will be suspended', position: 'Beginning of email' });
-      sections.push({ text: 'Act now before it\'s too late', position: 'Middle section' });
-      sections.push({ text: 'Immediate action required', position: 'Call to action' });
-    } else if (pattern.type === 'Suspicious Link') {
-      sections.push({ text: 'http://fake-bank-login.suspicious.com', position: 'Link section' });
-      sections.push({ text: 'Click here to verify', position: 'Footer area' });
-    } else if (pattern.type === 'Personal Info Request') {
-      sections.push({ text: 'Please confirm your SSN and password', position: 'Form section' });
+    if (!pattern.matches || pattern.matches.length === 0) {
+      return [];
     }
-    return sections;
+
+    return pattern.matches.map((match, index) => {
+      const position = inputText.indexOf(match);
+      const start = Math.max(0, position - 20);
+      const end = Math.min(inputText.length, position + match.length + 20);
+      
+      let context = inputText.substring(start, end);
+      if (start > 0) context = '...' + context;
+      if (end < inputText.length) context = context + '...';
+      
+      // Highlight the actual match within context
+      const highlightedContext = context.replace(
+        new RegExp(`(${match})`, 'gi'),
+        '<span class="font-bold text-red-700">$1</span>'
+      );
+      
+      return { 
+        text: highlightedContext, 
+        position: `Character position ${position}` 
+      };
+    });
   };
 
   const sections = getThreateningSections();
@@ -685,7 +818,7 @@ function PatternDetailModal({ pattern, onClose, inputText }) {
                       {index + 1}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-red-900 mb-1">{section.text}</p>
+                      <p className="text-sm font-medium text-red-900 mb-1" dangerouslySetInnerHTML={{ __html: section.text }}></p>
                       <p className="text-xs text-red-600">Location: {section.position}</p>
                     </div>
                   </div>
@@ -719,18 +852,23 @@ function PatternDetailModal({ pattern, onClose, inputText }) {
 
 function HighlightedText({ text, indicators }) {
   if (!indicators.length) return <>{text}</>;
+  
+  // Start with the original text
   let highlighted = text;
+  
+  // Replace each indicator with a highlighted version
   indicators.forEach((indicator) => {
-    const pattern = new RegExp(indicator.split(' ')[0], 'gi');
+    const pattern = new RegExp(`(${indicator})`, 'gi');
     highlighted = highlighted.replace(
       pattern,
-      (match) =>
-        `<mark class="bg-yellow-200 text-red-700 font-semibold px-1 rounded">${match}</mark>`
+      (match) => `<mark class="bg-yellow-200 text-red-700 font-semibold px-1 rounded">${match}</mark>`
     );
   });
+  
   return <div dangerouslySetInnerHTML={{ __html: highlighted }} />;
 }
 
+// Update the PhishingDetector component to use the ML model
 export default function PhishingDetector() {
   const [inputText, setInputText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -744,50 +882,119 @@ export default function PhishingDetector() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [scanHistory, setScanHistory] = useState([]);
   const [selectedPattern, setSelectedPattern] = useState(null);
+  const [apiError, setApiError] = useState(null);
   const fileInputRef = useRef(null);
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!inputText.trim()) return;
     setIsAnalyzing(true);
+    setApiError(null);
 
-    setTimeout(() => {
-      const mockResult = {
-        legitimacyScore: Math.floor(Math.random() * 40) + 30,
-        indicators: [
-          'Urgency language detected',
-          'Suspicious link found',
-          'Request for sensitive information',
-        ],
-        patterns: [
-          { type: 'Urgency Language', severity: 'medium', icon: <BoltOutlinedIcon />, color: 'yellow', count: 3 },
-          { type: 'Suspicious Link', severity: 'high', icon: <LinkOutlinedIcon />, color: 'red', count: 2 },
-          { type: 'Personal Info Request', severity: 'high', icon: <LockOutlinedIcon />, color: 'pink', count: 1 },
-          { type: 'Unusual Formatting', severity: 'low', icon: <AutoFixHighOutlinedIcon />, color: 'purple', count: 2 },
-          { type: 'Grammar Issues', severity: 'medium', icon: <EditNoteOutlinedIcon />, color: 'orange', count: 1 },
-        ],
-        accuracy: Math.floor(Math.random() * 20) + 80,
-        confidence: Math.floor(Math.random() * 30) + 65,
+    try {
+      // Extract patterns using regex for immediate feedback
+      const extractedPatterns = extractPatterns(inputText);
+      const indicators = extractedPatterns.flatMap(pattern => pattern.matches || []);
+      
+      // Call Hugging Face API for ML prediction
+      const mlResponse = await analyzeTextWithModel(inputText);
+      
+      if (mlResponse.error) {
+        setApiError(mlResponse.error);
+        throw new Error(mlResponse.error); // This will trigger the catch block
+      }
+      
+      console.log("ML API Response:", mlResponse); // For debugging
+      
+      // Parse the API response
+      // The response format depends on your model, adjust accordingly
+      let isPhishing = false;
+      let modelConfidence = 0.5;
+      
+      // Check if the response is an array with classification results
+      if (Array.isArray(mlResponse) && mlResponse.length > 0) {
+        const result = mlResponse[0];
+        // Check if the model classifies as phishing
+        isPhishing = result.label === "phishing";
+        modelConfidence = result.score;
+      }
+      
+      // Calculate legitimacy score (invert if phishing)
+      let legitimacyScore;
+      if (isPhishing) {
+        // If it's phishing, invert the score (lower is worse)
+        legitimacyScore = Math.max(0, Math.min(100, Math.round((1 - modelConfidence) * 100)));
+      } else {
+        // If it's legitimate, use the score directly
+        legitimacyScore = Math.max(0, Math.min(100, Math.round(modelConfidence * 100)));
+      }
+      
+      // Create result object
+      const finalResult = {
+        legitimacyScore: legitimacyScore,
+        indicators: indicators,
+        patterns: extractedPatterns,
+        accuracy: Math.round(modelConfidence * 100),
+        confidence: Math.round(modelConfidence * 100),
+        isModelResult: true,
+        modelResponse: mlResponse
       };
-      setResult(mockResult);
-      setIsAnalyzing(false);
-
+      
+      setResult(finalResult);
+      
+      // Add to scan history
       const newEntry = {
         timestamp: new Date(),
-        tokens: mockResult.indicators.map((i) => ({
+        tokens: indicators.map((i) => ({
           value: i,
           type: 'Indicator'
         }))
       };
       setScanHistory((prev) => [newEntry, ...prev]);
-    }, 1500);
+      
+    } catch (error) {
+      console.error("Error during analysis:", error);
+      
+      // If we already set an API error, don't overwrite it
+      if (!apiError) {
+        setApiError("Failed to analyze with ML model. Using fallback analysis.");
+      }
+      
+      // Fallback to regex-based analysis
+      const extractedPatterns = extractPatterns(inputText);
+      const indicators = extractedPatterns.flatMap(pattern => pattern.matches || []);
+      
+      const fallbackResult = {
+        legitimacyScore: 50, // Neutral score for fallback
+        indicators: indicators,
+        patterns: extractedPatterns,
+        accuracy: 70, // Lower accuracy for regex-only
+        confidence: 60,
+        isModelFallback: true
+      };
+      
+      setResult(fallbackResult);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  const handleFileUpload = (e) => {
+    const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       setUploadedFile(file.name);
       const reader = new FileReader();
-      reader.onload = (event) => setInputText(event.target.result);
+      
+      reader.onload = (event) => {
+        // Set the content to the file's text content
+        setInputText(event.target.result);
+      };
+      
+      if (file.type.includes('image')) {
+        // For image files, we should inform the user that OCR is not available
+        setApiError("OCR for images is not yet supported. Please upload a text file.");
+        return;
+      }
+      
       reader.readAsText(file);
     }
   };
@@ -802,6 +1009,7 @@ export default function PhishingDetector() {
       confidence: 0,
     });
     setUploadedFile(null);
+    setApiError(null);
   };
 
   const clearHistory = () => setScanHistory([]);
@@ -813,107 +1021,116 @@ export default function PhishingDetector() {
   return (
     <div className="py-20 px-4" id="detector">
       <div className="max-w-[1150px] mx-auto">
+        <AnimatedContent
+          direction="horizontal"
+          reverse={true}
+          duration={1.2}
+          ease="power3.out"
+          initialOpacity={0.1}
+          animateOpacity
+          scale={1.1}
+          threshold={0.2}
+          delay={0.10}
+        >
+          <div className="text-center overflow-hidden mb-12">
+            <h2 className="text-5xl md:text-6xl font-bold text-[#042046] mb-2">
+              Phishing Detector
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Our AI-powered detector analyzes text to identify phishing attempts and security threats.
+            </p>
+            {apiError && (
+              <div className="mt-4 px-4 py-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg max-w-2xl mx-auto">
+                <p className="text-sm">{apiError} <span className="text-xs">(Using local analysis instead)</span></p>
+              </div>
+            )}
+          </div>
+        </AnimatedContent>
 
         <AnimatedContent
-                    direction="horizontal"
-                    reverse={true}
-                    duration={1.2}
-                    ease="power3.out"
-                    initialOpacity={0.1}
-                    animateOpacity
-                    scale={1.1}
-                    threshold={0.2}
-                    delay={0.10}
-                  >
-                    <div className="text-center overflow-hidden mb-12">
-                      <h2 className="text-5xl md:text-6xl font-bold text-[#042046]">
-                        Phishing Detector
-                      </h2>
-                    </div>
-                  </AnimatedContent>
+          direction="horizontal"
+          reverse={true}
+          duration={1.2}
+          ease="power3.out"
+          initialOpacity={0.1}
+          animateOpacity
+          scale={1.1}
+          threshold={0.2}
+          delay={0.10}
+        >
+          <InputSection
+            inputText={inputText}
+            setInputText={setInputText}
+            isAnalyzing={isAnalyzing}
+            handleAnalyze={handleAnalyze}
+            handleFileUpload={handleFileUpload}
+            handleClear={handleClear}
+            uploadedFile={uploadedFile}
+            fileInputRef={fileInputRef}
+          />
+        </AnimatedContent>
 
-        <AnimatedContent
-                    direction="horizontal"
-                    reverse={true}
-                    duration={1.2}
-                    ease="power3.out"
-                    initialOpacity={0.1}
-                    animateOpacity
-                    scale={1.1}
-                    threshold={0.2}
-                    delay={0.10}
-                  >
-                    <InputSection
-                      inputText={inputText}
-                      setInputText={setInputText}
-                      isAnalyzing={isAnalyzing}
-                      handleAnalyze={handleAnalyze}
-                      handleFileUpload={handleFileUpload}
-                      handleClear={handleClear}
-                      uploadedFile={uploadedFile}
-                      fileInputRef={fileInputRef}
-                    />
-                  </AnimatedContent>
-
-        <AnimatedContent
-                    direction="horizontal"
-                    reverse={true}
-                    duration={1.2}
-                    ease="power3.out"
-                    initialOpacity={0.1}
-                    animateOpacity
-                    scale={1.1}
-                    threshold={0.2}
-                    delay={0.10}
-                  >
-                    <ResultsPanel result={result} inputText={inputText} />
-                  </AnimatedContent>
+        {(result.legitimacyScore > 0 || result.indicators.length > 0) && (
+          <AnimatedContent
+            direction="horizontal"
+            reverse={true}
+            duration={1.2}
+            ease="power3.out"
+            initialOpacity={0.1}
+            animateOpacity
+            scale={1.1}
+            threshold={0.2}
+            delay={0.10}
+          >
+            <ResultsPanel result={result} inputText={inputText} />
+          </AnimatedContent>
+        )}
 
         <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
           <AnimatedContent
-                    direction="horizontal"
-                    reverse={true}
-                    duration={1.2}
-                    ease="power3.out"
-                    initialOpacity={0.1}
-                    animateOpacity
-                    scale={1.1}
-                    threshold={0.2}
-                    delay={0.10}
-                  >
-                    <AnalyticsPanel result={result} scanHistory={scanHistory} />
-                  </AnimatedContent>
+            direction="horizontal"
+            reverse={true}
+            duration={1.2}
+            ease="power3.out"
+            initialOpacity={0.1}
+            animateOpacity
+            scale={1.1}
+            threshold={0.2}
+            delay={0.10}
+          >
+            <AnalyticsPanel result={result} scanHistory={scanHistory} />
+          </AnimatedContent>
 
           <AnimatedContent
-                    direction="horizontal"
-                    reverse={true}
-                    duration={1.2}
-                    ease="power3.out"
-                    initialOpacity={0.1}
-                    animateOpacity
-                    scale={1.1}
-                    threshold={0.2}
-                    delay={0.10}
-                  >
-                    <PatternDetectionPanel 
-                      indicators={result.patterns} 
-                      onPatternClick={handlePatternClick}
-                    />
-                  </AnimatedContent>
+            direction="horizontal"
+            reverse={true}
+            duration={1.2}
+            ease="power3.out"
+            initialOpacity={0.1}
+            animateOpacity
+            scale={1.1}
+            threshold={0.2}
+            delay={0.10}
+          >
+            <PatternDetectionPanel 
+              indicators={result.patterns} 
+              onPatternClick={handlePatternClick}
+            />
+          </AnimatedContent>
 
           <AnimatedContent
-                    direction="horizontal"
-                    reverse={true}
-                    duration={1.2}
-                    ease="power3.out"
-                    initialOpacity={0.1}
-                    animateOpacity
-                    scale={1.1}
-                    threshold={0.2}
-                    delay={0.10}
-                  >
-                    <ScanHistory scanHistory={scanHistory} clearHistory={clearHistory} />
-                  </AnimatedContent>
+            direction="horizontal"
+            reverse={true}
+            duration={1.2}
+            ease="power3.out"
+            initialOpacity={0.1}
+            animateOpacity
+            scale={1.1}
+            threshold={0.2}
+            delay={0.10}
+          >
+            <ScanHistory scanHistory={scanHistory} clearHistory={clearHistory} />
+          </AnimatedContent>
         </div>
       </div>
 
