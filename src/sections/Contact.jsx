@@ -20,7 +20,6 @@ export default function ContactUs() {
   const [errorMessage, setErrorMessage] = useState("");
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
 
-  // Use useCallback to prevent recreation of handler functions
   const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -39,23 +38,18 @@ export default function ContactUs() {
     setIsSubmitting(true);
     
     try {
-      // Create FormData object for Web3Forms
       const formDataForSubmission = new FormData();
-      
-      // Add the access key from environment variables
       formDataForSubmission.append(
         "access_key", 
         import.meta.env.VITE_WEB3FORMS_ACCESS_KEY
       );
-      
-      // Add form fields
+
       formDataForSubmission.append("name", `${formData.firstName} ${formData.lastName}`);
       formDataForSubmission.append("email", formData.email);
       formDataForSubmission.append("phone", formData.phone || "Not provided");
       formDataForSubmission.append("message", formData.message);
       formDataForSubmission.append("subject", "New Contact Form Submission - SecuriSense");
-      
-      // Submit to Web3Forms API
+
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         body: formDataForSubmission
@@ -64,10 +58,8 @@ export default function ContactUs() {
       const data = await response.json();
       
       if (data.success) {
-        // Show success message
         setShowSuccess(true);
-        
-        // Reset form after delay
+      
         setTimeout(() => {
           setFormData({
             firstName: "",
@@ -80,7 +72,6 @@ export default function ContactUs() {
           setShowSuccess(false);
         }, 3000);
       } else {
-        // Show error message
         setErrorMessage(data.message || "Something went wrong. Please try again.");
         setShowError(true);
         setTimeout(() => {
@@ -88,7 +79,6 @@ export default function ContactUs() {
         }, 5000);
       }
     } catch (error) {
-      // Handle any errors
       setErrorMessage("Network error. Please try again later.");
       setShowError(true);
       setTimeout(() => {
@@ -100,7 +90,7 @@ export default function ContactUs() {
   }, [formData]);
 
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center px-4 md:px-8 w-full" id="contact">
+    <section className="py-20 px-4 flex flex-col items-center justify-center md:px-8 w-full" id="contact">
       <AnimatedContent
         direction="horizontal"
         reverse={true}
@@ -134,8 +124,6 @@ export default function ContactUs() {
             <p className="text-gray-500 mb-6 text-center">
               Don't be a stranger and leave us a message. Our friendly team would love to hear from you!
             </p>
-
-            {/* Success Message Overlay */}
             <AnimatePresence>
               {showSuccess && (
                 <motion.div
@@ -189,7 +177,6 @@ export default function ContactUs() {
             </AnimatePresence>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Hidden field for Web3Forms Botcheck */}
               <input type="checkbox" name="botcheck" className="hidden" style={{ display: 'none' }} />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

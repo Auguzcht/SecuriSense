@@ -1,11 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-// Use the base URL from Vite to handle both development and production paths
 const LogoSvg = `${import.meta.env.BASE_URL}SecuriSense_Logo.svg`;
 
 export default function Footer() {
-  // Add smooth scroll handler
   const handleSmoothScroll = (e, href) => {
     e.preventDefault();
     const targetId = href.replace("#", "");
@@ -27,9 +25,7 @@ export default function Footer() {
   
   return (
     <footer className="relative overflow-hidden py-10 sm:pt-16 lg:pt-24 bg-white">
-      {/* Enhanced gradient line separator with animation */}
       <div className="absolute top-0 left-0 right-0">
-        {/* Main gradient line */}
         <motion.div 
           className="h-[2px] bg-gradient-to-r from-transparent via-[#4079ff] to-transparent"
           initial={{ opacity: 0.3 }}

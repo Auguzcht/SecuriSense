@@ -4,12 +4,14 @@ import "./style.css";
 import GradientText from "../components/GradientText";
 import AnimatedContent from "../components/AnimatedComponents";
 
-// Use the base URL from Vite to handle both development and production paths
 const RobotSvg = `${import.meta.env.BASE_URL}Robot_Element.svg`;
 
 const Home = () => {
   return (
-    <section className="w-full flex justify-center items-center min-h-screen px-30 pt-12" id="home">
+    <section
+  className="w-full flex justify-center items-center min-h-screen px-30 -mt-10 md:-mt-16"
+  id="home"
+>
       <div className="w-150 flex flex-col text-justify">
         <div className="flex flex-col items-start gap-5">
 
@@ -119,7 +121,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Right Side: Image */}
       <AnimatedContent direction="horizontal"
                 reverse={false}
                 duration={1.2}

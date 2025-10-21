@@ -15,26 +15,25 @@ function App() {
       <div className="fixed inset-0 -z-10 w-full h-full">
         <div className="relative inset-0 w-full h-full overflow-x-hidden
              bg-[radial-gradient(ellipse_100%_100%_at_50%_10%,#c6d6ff_10%,transparent_100%)] bg-transparent">
-               <Squares
+          <Squares
             speed={0.5} 
             squareSize={40}
             direction='diagonal'
             borderColor='#fff'
             hoverFillColor='#222'>
-
-        </Squares>
+          </Squares>
         </div>
       </div>
       
       <div>
         <NavBar />
-        <div className='flex flex-col gap-20'>
+        <div className='flex flex-col pt-20 md:pt-24'>
           <Home />
           <PhishingDetector/>
-        <About/>
-        <Team/>
-        <Contact/>
-        <Footer/>
+          <About/>
+          <Team/>
+          <Contact/>
+          <Footer/>
         </div>
       </div>
     </div>
@@ -42,5 +41,6 @@ function App() {
 }
 
 export default App;
+
 
 
