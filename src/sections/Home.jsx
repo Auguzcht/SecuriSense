@@ -1,9 +1,11 @@
 import React from "react";
-import Logo from "./Robot_Element.svg?react";
 import Button from "@mui/material/Button";
 import "./style.css";
 import GradientText from "../components/GradientText";
 import AnimatedContent from "../components/AnimatedComponents";
+
+// Use the base URL from Vite to handle both development and production paths
+const RobotSvg = `${import.meta.env.BASE_URL}Robot_Element.svg`;
 
 const Home = () => {
   return (
@@ -44,7 +46,7 @@ const Home = () => {
                   <div className="flex flex-col items-start gap-5">
             <h3 className="text-blue-950 italic font-light mt-4 max-w-1xl">
             SecuriSense is an AI-driven security platform that detects potential
-            threats in real time. Whether it’s suspicious code, unsafe links, or
+            threats in real time. Whether it's suspicious code, unsafe links, or
             hidden vulnerabilities, our intelligent detector helps you stay one
             step ahead of cyber risks.
           </h3>
@@ -94,7 +96,6 @@ const Home = () => {
         </div>
       </div>
 
-
       {/* Right Side: Image */}
       <AnimatedContent direction="horizontal"
                 reverse={false}
@@ -106,7 +107,7 @@ const Home = () => {
                 threshold={0.2}
                 delay={0.10}>
                    <div className="flex justify-center">
-        <Logo className="w-full max-w-[700px] h-auto pt-10 floating" />
+        <img src={RobotSvg} alt="AI Robot" className="w-full max-w-[700px] h-auto pt-10 floating" />
       </div>
 
                 </AnimatedContent>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { NavBarMenu } from "../mockData/data.js";
-import Logo from "./SecuriSense_Logo.svg?react";
+
+// Use the base URL from Vite to handle both development and production paths
+const LogoSvg = `${import.meta.env.BASE_URL}SecuriSense_Logo.svg`;
 
 const NavBar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -40,7 +42,7 @@ const NavBar = () => {
       }`}
     >
       <div className="flex items-center gap-2 sm:gap-4">
-        <Logo width={80} height={80} className="text-indigo-600" />
+        <img src={LogoSvg} alt="SecuriSense" width={80} height={80} className="text-indigo-600" />
         <span className="text-1xl sm:text-2xl font-bold text-[#042046]">
           SecuriSense
         </span>

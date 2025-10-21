@@ -1,4 +1,5 @@
-import Logo from "../components/SecuriSense_Logo.svg?react";
+// Use the base URL from Vite to handle both development and production paths
+const LogoSvg = `${import.meta.env.BASE_URL}SecuriSense_Logo.svg`;
 
 export default function Footer() {
   return (
@@ -8,7 +9,7 @@ export default function Footer() {
           {/* Brand Section */}
           <div>
             <div className="flex items-center">
-              <Logo width={60} height={60} />
+              <img src={LogoSvg} alt="SecuriSense" width={60} height={60} />
               <h4 className="text-2xl font-semibold text-gray-900">SecuriSense</h4>
             </div>
             <p className="text-base leading-relaxed text-gray-600 mt-5">
