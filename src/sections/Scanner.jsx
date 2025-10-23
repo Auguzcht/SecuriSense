@@ -1,8 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, FileText, Trash2, Mail, Clock, TrendingUp, PieChart as PieChartIcon, BarChart as BarChartIcon, Activity } from 'lucide-react';
-import { Gauge } from '@mui/x-charts/Gauge';
-import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Upload, FileText, Trash2, Mail } from 'lucide-react';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 import LinkOutlinedIcon from '@mui/icons-material/LinkOutlined';
@@ -14,23 +12,130 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DangerousIcon from '@mui/icons-material/Dangerous';
 import "./style.css";
 import AnimatedContent from '../components/AnimatedComponents';
+import Analytics from '../components/Analytics';
+import PatternDetection from '../components/PatternDetection';
+import ScanHistory from '../components/ScanHistory';
 
-// API configuration
-const HF_API_URL = "https://api-inference.huggingface.co/models/Auguzcht/securisense-phishing-detection";
+// API configuration - Update to use dedicated endpoint
+const HF_ENDPOINT_URL = import.meta.env.VITE_HUGGINGFACE_ENDPOINT_URL;
 const HF_API_KEY = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+
+// Retry configuration for scale-to-zero cold starts
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 5000; // 5 seconds
+const MAX_WAIT_TIME = 60000; // 60 seconds total
+
+// Function to call Hugging Face Dedicated Endpoint with retry logic
+const analyzeTextWithModel = async (text, onStatusUpdate = null) => {
+  let retries = 0;
+  let delay = INITIAL_RETRY_DELAY;
+  const startTime = Date.now();
+
+  while (retries < MAX_RETRIES) {
+    try {
+      if (onStatusUpdate) {
+        if (retries === 0) {
+          onStatusUpdate("Connecting to AI model...");
+        } else {
+          onStatusUpdate(`Model is warming up... (Attempt ${retries + 1}/${MAX_RETRIES})`);
+        }
+      }
+
+      console.log(`Calling Hugging Face Endpoint (Attempt ${retries + 1}/${MAX_RETRIES})`);
+      
+      const response = await fetch(HF_ENDPOINT_URL, {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Authorization": `Bearer ${HF_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ 
+          inputs: text,
+          parameters: {
+            max_length: 512,
+            truncation: true
+          }
+        }),
+      });
+
+      console.log("Endpoint Response Status:", response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Endpoint response data:", data);
+        
+        if (onStatusUpdate) {
+          onStatusUpdate("Analysis complete!");
+        }
+        
+        return data;
+      }
+
+      if (response.status === 503) {
+        const errorData = await response.json().catch(() => ({}));
+        console.log("503 Response:", errorData);
+
+        if (errorData.error?.includes("loading") || errorData.error?.includes("currently loading")) {
+          const estimatedTime = errorData.estimated_time || delay / 1000;
+          
+          if (onStatusUpdate) {
+            onStatusUpdate(`Model is loading... (~${Math.ceil(estimatedTime)}s remaining)`);
+          }
+
+          if (Date.now() - startTime > MAX_WAIT_TIME) {
+            throw new Error("Model loading timeout exceeded (60s). Please try again later.");
+          }
+
+          const waitTime = estimatedTime ? estimatedTime * 1000 : delay;
+          console.log(`Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          
+          retries++;
+          delay *= 1.5;
+          continue;
+        }
+      }
+
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Endpoint error:", errorData);
+      
+      return { 
+        error: errorData.error || `Request failed with status: ${response.status}` 
+      };
+
+    } catch (error) {
+      console.error(`Error on attempt ${retries + 1}:`, error);
+      
+      if (retries === MAX_RETRIES - 1) {
+        return { 
+          error: `Failed after ${MAX_RETRIES} attempts: ${error.message}` 
+        };
+      }
+
+      if (onStatusUpdate) {
+        onStatusUpdate(`Connection error. Retrying in ${delay/1000}s...`);
+      }
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      retries++;
+      delay *= 1.5;
+    }
+  }
+
+  return { error: "Maximum retry attempts exceeded" };
+};
 
 // Function to extract key patterns from text using regex
 const extractPatterns = (text) => {
   const patterns = [];
   
-  // Common phishing patterns
   const urgencyWords = /urgent|immediate|alert|warning|limited time|act now|expires?|verify|confirm|suspended|disabled|blocked/gi;
   const suspiciousLinks = /http[s]?:\/\/(?!www\.(?:google|facebook|twitter|linkedin|microsoft|apple|amazon)\.com)[^\s]+/gi;
   const personalInfoRequests = /password|username|login|social security|ssn|credit card|bank account|pin|security question/gi;
   const unusualFormatting = /[A-Z]{5,}|[!]{2,}|\$[A-Z]+\$|\*\*[^*]+\*\*/g;
   const grammarIssues = /we is|you is|they is|he are|she are|it are|kindly? do the needful|revert back|please\s+(?:to\s+)?(?:do|make|send)|we appreciate you to/gi;
 
-  // Check for urgency language
   const urgencyMatches = text.match(urgencyWords) || [];
   if (urgencyMatches.length > 0) {
     patterns.push({ 
@@ -42,7 +147,6 @@ const extractPatterns = (text) => {
     });
   }
 
-  // Check for suspicious links
   const linkMatches = text.match(suspiciousLinks) || [];
   if (linkMatches.length > 0) {
     patterns.push({ 
@@ -54,7 +158,6 @@ const extractPatterns = (text) => {
     });
   }
 
-  // Check for personal info requests
   const personalInfoMatches = text.match(personalInfoRequests) || [];
   if (personalInfoMatches.length > 0) {
     patterns.push({ 
@@ -66,7 +169,6 @@ const extractPatterns = (text) => {
     });
   }
 
-  // Check for unusual formatting
   const formattingMatches = text.match(unusualFormatting) || [];
   if (formattingMatches.length > 0) {
     patterns.push({ 
@@ -78,7 +180,6 @@ const extractPatterns = (text) => {
     });
   }
 
-  // Check for grammar issues
   const grammarMatches = text.match(grammarIssues) || [];
   if (grammarMatches.length > 0) {
     patterns.push({ 
@@ -93,51 +194,7 @@ const extractPatterns = (text) => {
   return patterns;
 };
 
-// Function to call Hugging Face API
-const analyzeTextWithModel = async (text) => {
-  try {
-    console.log("Calling Hugging Face API with key:", HF_API_KEY.substring(0, 5) + "...");
-    
-    const response = await fetch(HF_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${HF_API_KEY}`
-      },
-      body: JSON.stringify({ 
-        inputs: text,
-        options: { wait_for_model: true }
-      }),
-    });
-    
-    console.log("API Response Status:", response.status);
-    
-    if (!response.ok) {
-      if (response.status === 503) {
-        return { error: "Model is loading, please try again in a moment" };
-      }
-      
-      // Try to get the error message from the response
-      try {
-        const errorData = await response.json();
-        console.log("Error response data:", errorData);
-        return { error: errorData.error || `API request failed with status: ${response.status}` };
-      } catch (e) {
-        throw new Error(`API request failed with status: ${response.status}`);
-      }
-    }
-    
-    const data = await response.json();
-    console.log("API response data:", data);
-    return data;
-    
-  } catch (error) {
-    console.error("Error calling Hugging Face API:", error);
-    return { error: error.message };
-  }
-};
-
-function InputSection({ inputText, setInputText, isAnalyzing, handleAnalyze, handleFileUpload, handleClear, uploadedFile, fileInputRef }) {
+function InputSection({ inputText, setInputText, isAnalyzing, handleAnalyze, handleFileUpload, handleClear, uploadedFile, fileInputRef, loadingStatus }) {
   return (
     <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/50">
       <div className="mb-6">
@@ -182,10 +239,15 @@ function InputSection({ inputText, setInputText, isAnalyzing, handleAnalyze, han
           }`}
         >
           {isAnalyzing ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Analyzing...</span>
-            </>
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Analyzing...</span>
+              </div>
+              {loadingStatus && (
+                <span className="text-xs text-blue-100">{loadingStatus}</span>
+              )}
+            </div>
           ) : (
             <>
               <span><SearchOutlinedIcon/></span>
@@ -267,462 +329,6 @@ function ResultsPanel({ result, inputText }) {
   );
 }
 
-function AnalyticsPanel({ result, scanHistory }) {
-  const [activeTab, setActiveTab] = useState('overview');
-
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: <Activity size={14} /> },
-    { id: 'performance', label: 'Performance', icon: <TrendingUp size={14} /> },
-    { id: 'breakdown', label: 'Threat Breakdown', icon: <PieChartIcon size={14} /> },
-    { id: 'trends', label: 'Historical Trends', icon: <BarChartIcon size={14} /> }
-  ];
-
-  return (
-    <div className="bg-white/90 backdrop-blur-lg rounded-3xl p-6 border-2 border-gray-200 shadow-lg h-[500px] flex flex-col">
-      <div className="flex items-center mb-3 gap-2">
-        <Clock className="text-blue-500" size={20} />
-        <h3 className="text-lg font-semibold text-gray-800">Analytics</h3>
-      </div>
-
-      <div className="flex flex-wrap md:flex-nowrap gap-1 mb-4 bg-gray-100 rounded-lg p-1 overflow-x-auto scrollbar-custom scroll-smooth">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all duration-200 rounded-md
-              ${activeTab === tab.id
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-800'
-              }`}
-          >
-            {tab.icon}
-            <span className="hidden sm:inline">{tab.label}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="flex-grow overflow-hidden">
-        <div className="h-full overflow-y-auto pr-2">
-          {activeTab === 'overview' && <OverviewTab result={result} />}
-          {activeTab === 'performance' && <PerformanceTab result={result} />}
-          {activeTab === 'breakdown' && <ThreatBreakdownTab result={result} scanHistory={scanHistory} />}
-          {activeTab === 'trends' && <HistoricalTrendsTab scanHistory={scanHistory} result={result} />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-function OverviewTab({ result }) {
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
-          <p className="text-xs text-gray-600 mb-1">Legitimacy</p>
-          <p className="text-2xl font-bold text-blue-600">{result.legitimacyScore}%</p>
-        </div>
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
-          <p className="text-xs text-gray-600 mb-1">Patterns</p>
-          <p className="text-2xl font-bold text-purple-600">{result.patterns.length}</p>
-        </div>
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
-          <p className="text-xs text-gray-600 mb-1">Accuracy</p>
-          <p className="text-2xl font-bold text-green-600">{result.accuracy}%</p>
-        </div>
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4">
-          <p className="text-xs text-gray-600 mb-1">Confidence</p>
-          <p className="text-2xl font-bold text-orange-600">{result.confidence}%</p>
-        </div>
-      </div>
-
-      {result.patterns.length > 0 && (
-        <div className="bg-gray-50 rounded-xl p-4">
-          <h4 className="text-sm font-semibold text-gray-700 mb-3">Quick Summary</h4>
-          <div className="space-y-2">
-            {result.patterns.slice(0, 3).map((pattern, index) => (
-              <div key={index} className="flex items-center justify-between text-xs">
-                <span className="text-gray-700">{pattern.type}</span>
-                <span className={`px-2 py-0.5 rounded-full ${
-                  pattern.severity === 'high' ? 'bg-red-100 text-red-700' :
-                  pattern.severity === 'medium' ? 'bg-orange-100 text-orange-700' :
-                  'bg-yellow-100 text-yellow-700'
-                }`}>
-                  {pattern.count} found
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PerformanceTab({ result }) {
-  return (
-    <div className="flex flex-col items-center space-y-6">
-      <div className="w-full flex flex-col items-center">
-        <p className="text-sm text-gray-700 mb-2 font-semibold">Accuracy</p>
-        <Gauge width={200} height={180} value={result.accuracy} valueMin={0} valueMax={100} />
-      </div>
-
-      <div className="w-full flex flex-col items-center">
-        <p className="text-sm text-gray-700 mb-2 font-semibold">Confidence</p>
-        <Gauge width={200} height={180} value={result.confidence} valueMin={0} valueMax={100} />
-      </div>
-
-      <div className="w-full flex flex-col items-center">
-        <p className="text-sm text-gray-700 mb-2 font-semibold">Speed</p>
-        <Gauge width={200} height={180} value={result.confidence} valueMin={0} valueMax={100} />
-      </div>
-    </div>
-  );
-}
-
-function ThreatBreakdownTab({ result, scanHistory }) {
-  const severityData = [
-    { name: 'High', value: result.patterns.filter(p => p.severity === 'high').length, color: '#ef4444' },
-    { name: 'Medium', value: result.patterns.filter(p => p.severity === 'medium').length, color: '#f59e0b' },
-    { name: 'Low', value: result.patterns.filter(p => p.severity === 'low').length, color: '#eab308' }
-  ].filter(d => d.value > 0);
-
-  const threatTypeData = result.patterns.map(p => ({
-    name: p.type.split(' ')[0],
-    count: p.count
-  }));
-
-  const timelineData = scanHistory.slice(0, 8).reverse().map((entry, index) => ({
-    scan: `#${index + 1}`,
-    threats: entry.tokens.length
-  }));
-
-  return (
-    <div className="space-y-4">
-      {severityData.length > 0 && (
-        <div>
-          <h4 className="text-xs font-semibold text-gray-700 mb-2">Severity Distribution</h4>
-          <ResponsiveContainer width="100%" height={140}>
-            <PieChart>
-              <Pie
-                data={severityData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={50}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {severityData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {threatTypeData.length > 0 && (
-        <div>
-          <h4 className="text-xs font-semibold text-gray-700 mb-2">Threat Types</h4>
-          <ResponsiveContainer width="100%" height={120}>
-            <BarChart data={threatTypeData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" fontSize={9} />
-              <YAxis fontSize={9} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#3b82f6" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {timelineData.length > 0 && (
-        <div>
-          <h4 className="text-xs font-semibold text-gray-700 mb-2">Detection Timeline</h4>
-          <ResponsiveContainer width="100%" height={100}>
-            <LineChart data={timelineData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="scan" fontSize={9} />
-              <YAxis fontSize={9} />
-              <Tooltip />
-              <Line type="monotone" dataKey="threats" stroke="#3b82f6" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {result.patterns.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-          <PieChartIcon size={40} className="mb-2 opacity-30" />
-          <span className="text-xs">No threat data available</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function HistoricalTrendsTab({ scanHistory, result }) {
-  const comparisonData = scanHistory.slice(0, 8).reverse().map((entry, index) => ({
-    scan: `#${index + 1}`,
-    threats: entry.tokens.length,
-    isCurrent: index === scanHistory.slice(0, 8).length - 1
-  }));
-
-  const avgThreats = comparisonData.length > 0 
-    ? (comparisonData.reduce((sum, d) => sum + d.threats, 0) / comparisonData.length).toFixed(1)
-    : 0;
-
-  const currentThreats = result.indicators.length;
-  const trend = comparisonData.length > 1 
-    ? currentThreats > comparisonData[comparisonData.length - 2]?.threats 
-      ? 'increasing' 
-      : 'decreasing'
-    : 'neutral';
-
-  return (
-    <div className="space-y-4">
-      {comparisonData.length > 0 ? (
-        <>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-blue-50 rounded-lg p-3">
-              <p className="text-xs text-gray-600 mb-0.5">Current</p>
-              <p className="text-xl font-bold text-blue-600">{currentThreats}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs text-gray-600 mb-0.5">Average</p>
-              <p className="text-xl font-bold text-gray-700">{avgThreats}</p>
-            </div>
-          </div>
-
-          <div className={`p-3 rounded-lg ${
-            trend === 'increasing' ? 'bg-red-50' : trend === 'decreasing' ? 'bg-green-50' : 'bg-gray-50'
-          }`}>
-            <p className="text-xs font-semibold text-gray-700 mb-0.5">Trend</p>
-            <p className={`text-xs ${
-              trend === 'increasing' ? 'text-red-600' : trend === 'decreasing' ? 'text-green-600' : 'text-gray-600'
-            }`}>
-              {trend === 'increasing' && '↑ Increasing'}
-              {trend === 'decreasing' && '↓ Decreasing'}
-              {trend === 'neutral' && '→ No comparison'}
-            </p>
-          </div>
-
-          <div>
-            <h4 className="text-xs font-semibold text-gray-700 mb-2">History</h4>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={comparisonData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="scan" fontSize={9} />
-                <YAxis fontSize={9} />
-                <Tooltip />
-                <Bar dataKey="threats" fill="#3b82f6">
-                  {comparisonData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.isCurrent ? '#ef4444' : '#3b82f6'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-          <TrendingUp size={40} className="mb-2 opacity-30" />
-          <span className="text-xs">No historical data</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PatternDetectionPanel({ indicators, onPatternClick }) {
-  const getSeverityColor = (severity) => {
-    const colorMap = {
-      high: { bar: 'bg-red-500', text: 'text-red-400' },
-      medium: { bar: 'bg-orange-500', text: 'text-orange-400' },
-      low: { bar: 'bg-yellow-500', text: 'text-yellow-400' },
-    };
-    return colorMap[severity] || colorMap.low;
-  };
-
-  const getSeverityLabel = (severity) => {
-    const labels = {
-      high: 'High Risk',
-      medium: 'Caution',
-      low: 'Low Risk',
-    };
-    return labels[severity] || 'Unknown';
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-      className="bg-white/90 backdrop-blur-lg rounded-3xl p-6 border-2 border-gray-200 shadow-lg h-[500px] flex flex-col"
-    >
-      <div className="flex items-center mb-4 gap-2">
-        <SearchOutlinedIcon className="text-blue-500" />
-        <h3 className="text-lg font-semibold text-gray-800">Pattern Detection</h3>
-        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-          {indicators.length}
-        </span>
-      </div>
-
-      <div className="flex-grow overflow-hidden">
-        <AnimatePresence mode="popLayout">
-          {indicators.length > 0 ? (
-            <motion.div
-              className="h-full space-y-3 overflow-y-auto pr-2"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              {indicators.map((pattern, index) => {
-                const colors = getSeverityColor(pattern.severity);
-                const matchText = pattern.count === 1 ? '1 match' : `${pattern.count} matches`;
-                
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    onClick={() => onPatternClick(pattern)}
-                    className="bg-gray-50 rounded-xl p-4 transition-all duration-300 hover:bg-gray-100 cursor-pointer border border-gray-200 hover:border-blue-300 relative overflow-hidden"
-                  >
-                    <div className="absolute right-0 top-0 bottom-0 w-1">
-                      <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ 
-                          height: pattern.severity === 'high' ? '100%' : 
-                                 pattern.severity === 'medium' ? '66%' : '33%' 
-                        }}
-                        transition={{ duration: 0.8, delay: index * 0.1 + 0.3 }}
-                        className={`${colors.bar} w-full`}
-                        style={{ 
-                          background: pattern.severity === 'high' 
-                            ? 'linear-gradient(to bottom, #ef4444, #dc2626)' 
-                            : pattern.severity === 'medium'
-                            ? 'linear-gradient(to bottom, #f59e0b, #d97706)'
-                            : 'linear-gradient(to bottom, #eab308, #ca8a04)'
-                        }}
-                      />
-                    </div>
-
-                    <div className="flex items-start justify-between pr-3">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-800 text-base mb-1">{pattern.type}</h4>
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
-                          {getSeverityLabel(pattern.severity)} • <span className="text-blue-500">{pattern.icon}</span>
-                        </p>
-                      </div>
-                      <span className="text-sm text-gray-500 whitespace-nowrap ml-4">
-                        {matchText}
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="h-full flex flex-col items-center justify-center text-gray-400"
-            >
-              <SearchOutlinedIcon sx={{ fontSize: 64, opacity: 0.3 }} className="mb-3" />
-              <span className="text-sm font-medium mb-1">No patterns detected</span>
-              <span className="text-xs text-center text-gray-500">
-                Analyze an email to see detected phishing patterns
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.div>
-  );
-}
-
-function ScanHistory({ scanHistory, clearHistory }) {
-  const formatTime = (date) =>
-    new Date(date).toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="bg-white/90 backdrop-blur-lg rounded-3xl p-6 border-2 border-gray-200 shadow-lg h-[500px] flex flex-col"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Clock className="text-blue-500" />
-          <h3 className="text-lg font-semibold text-gray-800">Scan History</h3>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-            {scanHistory.length}
-          </span>
-        </div>
-        <button
-          onClick={clearHistory}
-          disabled={!scanHistory.length}
-          className="p-2 rounded-lg hover:bg-red-100 text-gray-500 hover:text-red-600 transition-all duration-300 disabled:opacity-50"
-          title="Clear History"
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-
-      <div className="flex-grow overflow-hidden">
-        <AnimatePresence mode="popLayout">
-          {scanHistory.length > 0 ? (
-            <motion.div
-              className="h-full space-y-3 overflow-y-auto pr-2"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              {scanHistory.map((entry) => (
-                <motion.div
-                  key={entry.timestamp.getTime()}
-                  className="border border-gray-200 rounded-xl p-3 bg-gray-50 hover:bg-blue-50 transition-colors duration-300"
-                >
-                  <div className="text-xs text-gray-500 mb-2">{formatTime(entry.timestamp)}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {entry.tokens.map((token, i) => (
-                      <div
-                        key={i}
-                        className="px-2 py-1 text-xs bg-white border border-gray-200 rounded-lg text-gray-700 shadow-sm"
-                      >
-                        {token.value}
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="h-full flex flex-col items-center justify-center text-gray-400"
-            >
-              <Clock size={48} className="mb-3 opacity-30" />
-              <span className="text-sm mb-1">No history yet</span>
-              <span className="text-xs">Your recent scans will appear here</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.div>
-  );
-}
-
 function PatternDetailModal({ pattern, onClose, inputText }) {
   if (!pattern) return null;
 
@@ -740,7 +346,6 @@ function PatternDetailModal({ pattern, onClose, inputText }) {
       if (start > 0) context = '...' + context;
       if (end < inputText.length) context = context + '...';
       
-      // Highlight the actual match within context
       const highlightedContext = context.replace(
         new RegExp(`(${match})`, 'gi'),
         '<span class="font-bold text-red-700">$1</span>'
@@ -853,10 +458,8 @@ function PatternDetailModal({ pattern, onClose, inputText }) {
 function HighlightedText({ text, indicators }) {
   if (!indicators.length) return <>{text}</>;
   
-  // Start with the original text
   let highlighted = text;
   
-  // Replace each indicator with a highlighted version
   indicators.forEach((indicator) => {
     const pattern = new RegExp(`(${indicator})`, 'gi');
     highlighted = highlighted.replace(
@@ -868,10 +471,10 @@ function HighlightedText({ text, indicators }) {
   return <div dangerouslySetInnerHTML={{ __html: highlighted }} />;
 }
 
-// Update the PhishingDetector component to use the ML model
 export default function PhishingDetector() {
   const [inputText, setInputText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState('');
   const [result, setResult] = useState({
     legitimacyScore: 0,
     indicators: [],
@@ -889,46 +492,46 @@ export default function PhishingDetector() {
     if (!inputText.trim()) return;
     setIsAnalyzing(true);
     setApiError(null);
+    setLoadingStatus('Initializing...');
 
     try {
-      // Extract patterns using regex for immediate feedback
       const extractedPatterns = extractPatterns(inputText);
       const indicators = extractedPatterns.flatMap(pattern => pattern.matches || []);
       
-      // Call Hugging Face API for ML prediction
-      const mlResponse = await analyzeTextWithModel(inputText);
+      const mlResponse = await analyzeTextWithModel(inputText, (status) => {
+        setLoadingStatus(status);
+      });
       
       if (mlResponse.error) {
         setApiError(mlResponse.error);
-        throw new Error(mlResponse.error); // This will trigger the catch block
+        throw new Error(mlResponse.error);
       }
       
-      console.log("ML API Response:", mlResponse); // For debugging
+      console.log("ML Endpoint Response:", mlResponse);
       
-      // Parse the API response
-      // The response format depends on your model, adjust accordingly
       let isPhishing = false;
       let modelConfidence = 0.5;
       
-      // Check if the response is an array with classification results
       if (Array.isArray(mlResponse) && mlResponse.length > 0) {
-        const result = mlResponse[0];
-        // Check if the model classifies as phishing
-        isPhishing = result.label === "phishing";
-        modelConfidence = result.score;
+        if (mlResponse[0].label && mlResponse[0].score !== undefined) {
+          const result = mlResponse[0];
+          isPhishing = result.label.toLowerCase().includes('phishing') || 
+                      result.label === 'LABEL_1';
+          modelConfidence = result.score;
+        }
+      } else if (mlResponse.label && mlResponse.score !== undefined) {
+        isPhishing = mlResponse.label.toLowerCase().includes('phishing') || 
+                    mlResponse.label === 'LABEL_1';
+        modelConfidence = mlResponse.score;
       }
       
-      // Calculate legitimacy score (invert if phishing)
       let legitimacyScore;
       if (isPhishing) {
-        // If it's phishing, invert the score (lower is worse)
         legitimacyScore = Math.max(0, Math.min(100, Math.round((1 - modelConfidence) * 100)));
       } else {
-        // If it's legitimate, use the score directly
         legitimacyScore = Math.max(0, Math.min(100, Math.round(modelConfidence * 100)));
       }
       
-      // Create result object
       const finalResult = {
         legitimacyScore: legitimacyScore,
         indicators: indicators,
@@ -940,8 +543,8 @@ export default function PhishingDetector() {
       };
       
       setResult(finalResult);
+      setLoadingStatus('');
       
-      // Add to scan history
       const newEntry = {
         timestamp: new Date(),
         tokens: indicators.map((i) => ({
@@ -953,21 +556,20 @@ export default function PhishingDetector() {
       
     } catch (error) {
       console.error("Error during analysis:", error);
+      setLoadingStatus('');
       
-      // If we already set an API error, don't overwrite it
       if (!apiError) {
         setApiError("Failed to analyze with ML model. Using fallback analysis.");
       }
       
-      // Fallback to regex-based analysis
       const extractedPatterns = extractPatterns(inputText);
       const indicators = extractedPatterns.flatMap(pattern => pattern.matches || []);
       
       const fallbackResult = {
-        legitimacyScore: 50, // Neutral score for fallback
+        legitimacyScore: 50,
         indicators: indicators,
         patterns: extractedPatterns,
-        accuracy: 70, // Lower accuracy for regex-only
+        accuracy: 70,
         confidence: 60,
         isModelFallback: true
       };
@@ -978,19 +580,17 @@ export default function PhishingDetector() {
     }
   };
 
-    const handleFileUpload = (e) => {
+  const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       setUploadedFile(file.name);
       const reader = new FileReader();
       
       reader.onload = (event) => {
-        // Set the content to the file's text content
         setInputText(event.target.result);
       };
       
       if (file.type.includes('image')) {
-        // For image files, we should inform the user that OCR is not available
         setApiError("OCR for images is not yet supported. Please upload a text file.");
         return;
       }
@@ -1067,6 +667,7 @@ export default function PhishingDetector() {
             handleClear={handleClear}
             uploadedFile={uploadedFile}
             fileInputRef={fileInputRef}
+            loadingStatus={loadingStatus}
           />
         </AnimatedContent>
 
@@ -1098,7 +699,7 @@ export default function PhishingDetector() {
             threshold={0.2}
             delay={0.10}
           >
-            <AnalyticsPanel result={result} scanHistory={scanHistory} />
+            <Analytics result={result} scanHistory={scanHistory} />
           </AnimatedContent>
 
           <AnimatedContent
@@ -1112,8 +713,8 @@ export default function PhishingDetector() {
             threshold={0.2}
             delay={0.10}
           >
-            <PatternDetectionPanel 
-              indicators={result.patterns} 
+            <PatternDetection 
+              patterns={result.patterns} 
               onPatternClick={handlePatternClick}
             />
           </AnimatedContent>
