@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import Button from "@mui/material/Button";
+import { motion } from "framer-motion";
 import "./style.css";
 import GradientText from "../components/GradientText";
 import AnimatedContent from "../components/AnimatedComponents";
@@ -8,12 +9,12 @@ import { useMediaQuery } from "@mui/material";
 const RobotSvg = `${import.meta.env.BASE_URL}Robot_Element.svg`;
 
 const Home = () => {
-  // Update the breakpoint to 1348px to ensure continuous display across all device sizes
   const isMobileOrTablet = useMediaQuery('(max-width:1348px)');
+  const [imageLoaded, setImageLoaded] = useState(false);
   
   return (
     <>
-      {/* Mobile & Tablet Layout (Used for all devices up to 1348px width) */}
+      {/* Mobile & Tablet Layout */}
       {isMobileOrTablet && (
         <section
           className="w-full flex flex-col justify-center items-center min-h-screen px-4 pt-24"
@@ -30,16 +31,57 @@ const Home = () => {
             threshold={0.2}
             delay={0.10}
           >
-            <div className="flex justify-center mb-6">
-              <img 
+            <div className="flex justify-center mb-6 relative">
+              {/* Loading skeleton */}
+              {!imageLoaded && (
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center"
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: imageLoaded ? 0 : 1 }}
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    height: "min(50vh, 350px)",
+                    maxWidth: "100%",
+                  }}
+                >
+                  <div className="relative w-full h-full bg-gradient-to-br from-blue-50 via-purple-50 to-blue-50 rounded-3xl flex items-center justify-center overflow-hidden">
+                    {/* Animated shimmer effect */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                      animate={{
+                        x: ['-100%', '200%'],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                      style={{ width: '50%' }}
+                    />
+                    
+                    {/* Spinning loader */}
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      className="w-16 h-16 border-4 border-blue-200 border-t-blue-500 rounded-full"
+                    />
+                  </div>
+                </motion.div>
+              )}
+              
+              {/* Actual image */}
+              <motion.img 
                 src={RobotSvg} 
                 alt="AI Robot" 
                 className="w-auto floating" 
                 style={{
                   height: "min(50vh, 350px)",
                   maxWidth: "100%",
-                  objectFit: "contain"
+                  objectFit: "contain",
+                  opacity: imageLoaded ? 1 : 0,
+                  transition: "opacity 0.5s ease-in-out"
                 }}
+                onLoad={() => setImageLoaded(true)}
               />
             </div>
           </AnimatedContent>
@@ -157,7 +199,7 @@ const Home = () => {
         </section>
       )}
 
-      {/* Desktop Layout (Only shown on large screens > 1348px) */}
+      {/* Desktop Layout */}
       {!isMobileOrTablet && (
         <section
           className="w-full flex justify-center items-center min-h-screen px-30 -mt-10 md:-mt-16"
@@ -287,8 +329,53 @@ const Home = () => {
             threshold={0.2}
             delay={0.10}
           >
-            <div className="flex justify-center">
-              <img 
+            <div className="flex justify-center relative">
+              {/* Loading skeleton for desktop */}
+              {!imageLoaded && (
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center"
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: imageLoaded ? 0 : 1 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ 
+                    width: "auto", 
+                    height: "80vh",
+                    maxHeight: "850px",
+                  }}
+                >
+                  <div className="relative bg-gradient-to-br from-blue-50 via-purple-50 to-blue-50 rounded-3xl flex items-center justify-center overflow-hidden" 
+                    style={{ 
+                      width: "500px", 
+                      height: "80vh",
+                      maxHeight: "850px",
+                    }}
+                  >
+                    {/* Animated shimmer effect */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                      animate={{
+                        x: ['-100%', '200%'],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                      style={{ width: '50%' }}
+                    />
+                    
+                    {/* Spinning loader */}
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      className="w-24 h-24 border-4 border-blue-200 border-t-blue-500 rounded-full"
+                    />
+                  </div>
+                </motion.div>
+              )}
+              
+              {/* Actual image */}
+              <motion.img 
                 src={RobotSvg} 
                 alt="AI Robot" 
                 className="w-full max-w-[900px] h-auto pt-10 floating" 
@@ -297,8 +384,11 @@ const Home = () => {
                   height: "80vh",
                   maxHeight: "850px",
                   marginRight: "-30%",
-                  transform: "scale(1.4)"
+                  transform: "scale(1.4)",
+                  opacity: imageLoaded ? 1 : 0,
+                  transition: "opacity 0.5s ease-in-out"
                 }}
+                onLoad={() => setImageLoaded(true)}
               />
             </div>
           </AnimatedContent>
