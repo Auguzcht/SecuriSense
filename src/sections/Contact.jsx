@@ -90,7 +90,7 @@ export default function ContactUs() {
   }, [formData]);
 
   return (
-    <section className="py-20 px-4 flex flex-col items-center justify-center md:px-8 w-full" id="contact">
+    <section className="pt-10 pb-32 px-4 flex flex-col items-center justify-center md:px-8 w-full" id="contact">
       <AnimatedContent
         direction="horizontal"
         reverse={true}
@@ -102,7 +102,7 @@ export default function ContactUs() {
         threshold={0.2}
         delay={0.10}
       >
-        <h2 className="text-5xl md:text-6xl font-bold text-[#042046] mb-12 text-center">
+        <h2 className="text-5xl md:text-6xl font-bold text-[#042046] mb-16 text-center">
           Contact Us
         </h2>
       </AnimatedContent>
@@ -188,7 +188,9 @@ export default function ContactUs() {
                     value={formData.firstName}
                     onChange={handleChange}
                     required
-                    className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-[#f97316]"
+                    className="border-2 border-gray-200 rounded-xl px-3 py-2 w-full transition-all duration-300 text-sm
+                      focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 
+                      hover:border-gray-300 bg-gradient-to-br from-gray-50/80 to-gray-100/50"
                   />
                 </div>
                 <div>
@@ -199,7 +201,9 @@ export default function ContactUs() {
                     value={formData.lastName}
                     onChange={handleChange}
                     required
-                    className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-[#f97316]"
+                    className="border-2 border-gray-200 rounded-xl px-3 py-2 w-full transition-all duration-300 text-sm
+                      focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 
+                      hover:border-gray-300 bg-gradient-to-br from-gray-50/80 to-gray-100/50"
                   />
                 </div>
               </div>
@@ -213,7 +217,9 @@ export default function ContactUs() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-[#f97316]"
+                  className="border-2 border-gray-200 rounded-xl px-3 py-2 w-full transition-all duration-300 text-sm
+                    focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 
+                    hover:border-gray-300 bg-gradient-to-br from-gray-50/80 to-gray-100/50"
                 />
               </div>
 
@@ -225,7 +231,9 @@ export default function ContactUs() {
                   placeholder="+1 (000) 000-0000"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-[#f97316]"
+                  className="border-2 border-gray-200 rounded-xl px-3 py-2 w-full transition-all duration-300 text-sm
+                    focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 
+                    hover:border-gray-300 bg-gradient-to-br from-gray-50/80 to-gray-100/50"
                 />
               </div>
 
@@ -237,8 +245,10 @@ export default function ContactUs() {
                   value={formData.message}
                   onChange={handleChange}
                   required
-                  rows={2}
-                  className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-[#f97316]"
+                  rows={4}
+                  className="border-2 border-gray-200 rounded-xl px-3 py-2 w-full transition-all duration-300 resize-none text-sm
+                    focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 
+                    hover:border-gray-300 bg-gradient-to-br from-gray-50/80 to-gray-100/50"
                 />
               </div>
 
@@ -250,13 +260,13 @@ export default function ContactUs() {
                   checked={formData.agree}
                   onChange={handleChange}
                   required
-                  className="mt-1 rounded text-[#f97316] focus:ring-[#f97316]"
+                  className="mt-1 rounded text-[#f97316] focus:ring-[#f97316] focus:ring-2 transition-all duration-200"
                 />
                 <label htmlFor="agree" className="text-sm text-gray-500">
                   You agree to our friendly{" "}
                   <a 
                     href="#" 
-                    className="text-[#f97316] hover:text-[#ef4444] underline"
+                    className="text-[#f97316] hover:text-[#ef4444] underline transition-colors duration-200"
                     onClick={handlePrivacyPolicyClick}
                   >
                     privacy policy
@@ -269,7 +279,8 @@ export default function ContactUs() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full py-3 px-4 rounded-xl transform transition-all duration-300 hover:translate-y-[-3px] hover:shadow-[0_8px_20px_rgba(239,68,68,0.3)] active:translate-y-0 font-medium relative overflow-hidden`}
+                  className={`w-full py-3 px-4 rounded-xl transform transition-all duration-300 hover:translate-y-[-3px] hover:shadow-[0_8px_20px_rgba(239,68,68,0.3)] active:translate-y-0 font-medium relative overflow-hidden
+                    ${isSubmitting ? 'cursor-not-allowed opacity-80' : ''}`}
                 >
                   <div 
                     className="absolute inset-0 bg-gradient-to-r from-[#f97316] to-[#ef4444] to-[#f97316] bg-[length:200%_100%] transition-all duration-300"

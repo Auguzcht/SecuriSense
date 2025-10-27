@@ -1,7 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, FileText, Trash2, Mail } from 'lucide-react';
-import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 import LinkOutlinedIcon from '@mui/icons-material/LinkOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
@@ -15,6 +13,7 @@ import AnimatedContent from '../components/AnimatedComponents';
 import Analytics from '../components/Analytics';
 import PatternDetection from '../components/PatternDetection';
 import ScanHistory from '../components/ScanHistory';
+import EnhancedInputSection from '../components/EnhancedInputSection';
 
 // API configuration - Update to use dedicated endpoint
 const HF_ENDPOINT_URL = import.meta.env.VITE_HUGGINGFACE_ENDPOINT_URL;
@@ -193,87 +192,6 @@ const extractPatterns = (text) => {
 
   return patterns;
 };
-
-function InputSection({ inputText, setInputText, isAnalyzing, handleAnalyze, handleFileUpload, handleClear, uploadedFile, fileInputRef, loadingStatus }) {
-  return (
-    <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/50">
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <Mail className="w-6 h-6 text-blue-500" /> Text
-          </h2>
-          <button
-            onClick={handleClear}
-            className="p-2 hover:bg-red-100 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 group"
-            title="Clear"
-          >
-            <Trash2 className="w-5 h-5 text-gray-600 group-hover:text-red-600 transition-colors" />
-          </button>
-        </div>
-
-        <textarea
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          placeholder="Paste your email content here or upload a file..."
-          className="w-full h-64 bg-gray-50/80 text-gray-800 rounded-2xl p-6 border-2 border-gray-200 focus:border-blue-400 focus:outline-none resize-none text-sm transition-all duration-300 placeholder:text-gray-400"
-        />
-        <div className="flex items-center justify-between mt-4">
-          <span className="text-sm text-gray-500 font-medium">
-            {inputText.length}/15,000 Characters
-          </span>
-          {uploadedFile && (
-            <span className="text-sm text-blue-600 flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              {uploadedFile}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button
-          onClick={handleAnalyze}
-          disabled={isAnalyzing || !inputText.trim()}
-          className={`bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-blue-300/50 flex items-center justify-center gap-3 group hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-            isAnalyzing ? 'animate-pulse' : ''
-          }`}
-        >
-          {isAnalyzing ? (
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Analyzing...</span>
-              </div>
-              {loadingStatus && (
-                <span className="text-xs text-blue-100">{loadingStatus}</span>
-              )}
-            </div>
-          ) : (
-            <>
-              <span><SearchOutlinedIcon/></span>
-              <span>Detect Phishing</span>
-            </>
-          )}
-        </button>
-
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="bg-white border-2 border-gray-300 hover:border-blue-400 text-gray-700 font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-blue-200/50 flex items-center justify-center gap-3 group hover:scale-[1.02] active:scale-95"
-        >
-          <Upload className="w-5 h-5 text-blue-500" />
-          Upload File
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".txt,.eml,.msg,image/*"
-          onChange={handleFileUpload}
-          className="hidden"
-        />
-      </div>
-    </div>
-  );
-}
 
 function ResultsPanel({ result, inputText }) {
   const getGaugeColor = (score) => {
@@ -482,11 +400,9 @@ export default function PhishingDetector() {
     accuracy: 0,
     confidence: 0,
   });
-  const [uploadedFile, setUploadedFile] = useState(null);
   const [scanHistory, setScanHistory] = useState([]);
   const [selectedPattern, setSelectedPattern] = useState(null);
   const [apiError, setApiError] = useState(null);
-  const fileInputRef = useRef(null);
 
   const handleAnalyze = async () => {
     if (!inputText.trim()) return;
@@ -580,25 +496,6 @@ export default function PhishingDetector() {
     }
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setUploadedFile(file.name);
-      const reader = new FileReader();
-      
-      reader.onload = (event) => {
-        setInputText(event.target.result);
-      };
-      
-      if (file.type.includes('image')) {
-        setApiError("OCR for images is not yet supported. Please upload a text file.");
-        return;
-      }
-      
-      reader.readAsText(file);
-    }
-  };
-
   const handleClear = () => {
     setInputText('');
     setResult({
@@ -608,7 +505,6 @@ export default function PhishingDetector() {
       accuracy: 0,
       confidence: 0,
     });
-    setUploadedFile(null);
     setApiError(null);
   };
 
@@ -619,7 +515,7 @@ export default function PhishingDetector() {
   };
 
   return (
-    <div className="py-20 px-4" id="detector">
+    <div className="py-25 px-4" id="detector"> {/* Changed from py-20 to py-32 */}
       <div className="max-w-[1150px] mx-auto">
         <AnimatedContent
           direction="horizontal"
@@ -658,15 +554,12 @@ export default function PhishingDetector() {
           threshold={0.2}
           delay={0.10}
         >
-          <InputSection
+          <EnhancedInputSection
             inputText={inputText}
             setInputText={setInputText}
             isAnalyzing={isAnalyzing}
             handleAnalyze={handleAnalyze}
-            handleFileUpload={handleFileUpload}
             handleClear={handleClear}
-            uploadedFile={uploadedFile}
-            fileInputRef={fileInputRef}
             loadingStatus={loadingStatus}
           />
         </AnimatedContent>

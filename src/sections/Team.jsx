@@ -8,10 +8,10 @@ import AnimatedContent from '../components/AnimatedComponents';
 
 const Team = () => {
   return (
-    <section className="py-20 px-4 w-full flex justify-center items-center" id='team'>
+    <section className="py-25 px-4 w-full flex justify-center items-center" id='team'> {/* Changed from py-20 to py-32 */}
       <div className="w-full max-w-7xl">
         <AnimatedContent direction="horizontal" reverse={true} duration={1.2} ease="power3.out" initialOpacity={0.1} animateOpacity scale={1.1} threshold={0.2} delay={0.10}>
-          <h2 className="text-5xl md:text-6xl font-bold text-[#042046] mb-12 text-center">
+          <h2 className="text-5xl md:text-6xl font-bold text-[#042046] mb-16 text-center"> {/* Changed from mb-12 to mb-16 */}
             Meet the Team
           </h2>
         </AnimatedContent>

@@ -73,9 +73,9 @@ export default function ScanHistory({ scanHistory, clearHistory }) {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 200 }}
-            className="px-3 py-1.5 rounded-full bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200"
+            className="flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 h-7"
           >
-            <span className="text-xs font-semibold text-gray-700">
+            <span className="text-xs font-semibold text-gray-700 leading-none">
               {scanHistory.length} {scanHistory.length === 1 ? 'scan' : 'scans'}
             </span>
           </motion.div>
@@ -117,7 +117,7 @@ export default function ScanHistory({ scanHistory, clearHistory }) {
                       type: "spring",
                       stiffness: 200
                     }}
-                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileHover={{ y: -2 }}
                     className={`relative bg-gradient-to-br ${severity.gradient} rounded-2xl p-4 border-2 ${severity.border} transition-all duration-300 group overflow-hidden cursor-pointer`}
                   >
                     {/* Glass shimmer effect on hover */}
@@ -166,15 +166,15 @@ export default function ScanHistory({ scanHistory, clearHistory }) {
                               repeat: Infinity,
                               repeatDelay: 1
                             }}
-                            className="text-base"
+                            className="text-base flex-shrink-0"
                           >
                             {severity.icon}
                           </motion.span>
                           <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-gray-700">
+                            <span className="text-xs font-semibold text-gray-700 whitespace-nowrap">
                               {formatDate(entry.timestamp)}
                             </span>
-                            <span className="text-[10px] text-gray-500">
+                            <span className="text-[10px] text-gray-500 whitespace-nowrap">
                               {formatTime(entry.timestamp)}
                             </span>
                           </div>
@@ -184,17 +184,17 @@ export default function ScanHistory({ scanHistory, clearHistory }) {
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ delay: entryIndex * 0.05 + 0.3 }}
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${severity.textColor} ${severity.badgeBg} backdrop-blur-sm border border-white/40 flex items-center gap-1`}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${severity.textColor} ${severity.badgeBg} backdrop-blur-sm border border-white/40 whitespace-nowrap flex-shrink-0 h-5`}
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-                          {severity.label}
+                          <span className="leading-none">{severity.label}</span>
                         </motion.div>
                       </div>
 
                       {/* Threat counter */}
                       <div className="flex items-center gap-2 mb-3">
-                        <AlertCircle size={14} className={severity.textColor} />
-                        <span className="text-xs font-semibold text-gray-700">
+                        <AlertCircle size={14} className={`${severity.textColor} flex-shrink-0`} />
+                        <span className="text-xs font-semibold text-gray-700 whitespace-nowrap">
                           {entry.tokens.length} {entry.tokens.length === 1 ? 'threat' : 'threats'} detected
                         </span>
                       </div>
@@ -218,7 +218,7 @@ export default function ScanHistory({ scanHistory, clearHistory }) {
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: entryIndex * 0.05 + 0.55 }}
-                            className="px-2.5 py-1 text-[10px] bg-gray-200/80 backdrop-blur-sm border border-gray-300 rounded-lg text-gray-600 shadow-sm font-bold"
+                            className="px-2.5 py-1 text-[10px] bg-gray-200/80 backdrop-blur-sm border border-gray-300 rounded-lg text-gray-600 shadow-sm font-bold whitespace-nowrap"
                           >
                             +{entry.tokens.length - 3} more
                           </motion.div>

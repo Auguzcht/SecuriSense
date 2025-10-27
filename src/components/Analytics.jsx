@@ -217,12 +217,7 @@ function OverviewTab({ result }) {
           className="bg-gray-50 rounded-xl p-4 shadow-sm"
         >
           <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-            <motion.span
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            >
-              📊
-            </motion.span>
+            <span>📊</span>
             Quick Summary
           </h4>
           <div className="space-y-2">
@@ -257,9 +252,9 @@ function OverviewTab({ result }) {
 // Performance Tab Component
 function PerformanceTab({ result }) {
   const gauges = [
-    { label: 'Accuracy', value: result.accuracy, color: '#10b981', gradient: 'from-green-400 to-green-600' },
-    { label: 'Confidence', value: result.confidence, color: '#3b82f6', gradient: 'from-blue-400 to-blue-600' },
-    { label: 'Speed', value: result.confidence, color: '#f59e0b', gradient: 'from-orange-400 to-orange-600' }
+    { label: 'Accuracy', value: result.accuracy, color: '#10b981', gradient: 'from-green-400 to-green-600', strokeColor: '#10b981' },
+    { label: 'Confidence', value: result.confidence, color: '#3b82f6', gradient: 'from-blue-400 to-blue-600', strokeColor: '#3b82f6' },
+    { label: 'Speed', value: result.confidence, color: '#f59e0b', gradient: 'from-orange-400 to-orange-600', strokeColor: '#f59e0b' }
   ];
 
   return (
@@ -285,12 +280,24 @@ function PerformanceTab({ result }) {
             {gauge.label}
           </motion.p>
           
-          {/* Gauge without hover animation to prevent layout shifts */}
           <div className="w-[200px] flex justify-center">
-            <Gauge width={200} height={180} value={gauge.value} valueMin={0} valueMax={100} />
+            <Gauge 
+              width={200} 
+              height={180} 
+              value={gauge.value} 
+              valueMin={0} 
+              valueMax={100}
+              sx={{
+                [`& .MuiGauge-valueArc`]: {
+                  fill: gauge.strokeColor,
+                },
+                [`& .MuiGauge-referenceArc`]: {
+                  fill: '#e5e7eb',
+                },
+              }}
+            />
           </div>
           
-          {/* Progress bar container with fixed width */}
           <div className="w-[200px] h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
@@ -336,12 +343,7 @@ function ThreatBreakdownTab({ result, scanHistory }) {
           transition={{ delay: 0.1 }}
         >
           <h4 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <motion.span
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              🎯
-            </motion.span>
+            <span>🎯</span>
             Severity Distribution
           </h4>
           <ResponsiveContainer width="100%" height={140}>
@@ -375,12 +377,7 @@ function ThreatBreakdownTab({ result, scanHistory }) {
           transition={{ delay: 0.2 }}
         >
           <h4 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <motion.span
-              animate={{ rotate: [0, 15, -15, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              ⚠️
-            </motion.span>
+            <span>⚠️</span>
             Threat Types
           </h4>
           <ResponsiveContainer width="100%" height={120}>
@@ -402,12 +399,7 @@ function ThreatBreakdownTab({ result, scanHistory }) {
           transition={{ delay: 0.3 }}
         >
           <h4 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <motion.span
-              animate={{ y: [0, -3, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              📈
-            </motion.span>
+            <span>📈</span>
             Detection Timeline
           </h4>
           <ResponsiveContainer width="100%" height={100}>
@@ -531,35 +523,35 @@ function HistoricalTrendsTab({ scanHistory, result }) {
         <>
           <div className="grid grid-cols-2 gap-3">
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              whileHover={{ scale: 1.05, y: -2 }}
-              className="bg-blue-50 rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-300"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+              whileHover={{ y: -2 }}
+              className="bg-blue-50 rounded-xl p-3 shadow-sm transition-shadow duration-300 hover:shadow-md"
             >
-              <p className="text-xs text-gray-600 mb-0.5">Current</p>
+              <p className="text-xs text-gray-600 mb-1 font-medium">Current</p>
               <motion.p
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring" }}
-                className="text-xl font-bold text-blue-600"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-2xl font-bold text-blue-600"
               >
                 {currentThreats}
               </motion.p>
             </motion.div>
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
-              whileHover={{ scale: 1.05, y: -2 }}
-              className="bg-gray-50 rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-300"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.15, duration: 0.3 }}
+              whileHover={{ y: -2 }}
+              className="bg-gray-50 rounded-xl p-3 shadow-sm transition-shadow duration-300 hover:shadow-md"
             >
-              <p className="text-xs text-gray-600 mb-0.5">Average</p>
+              <p className="text-xs text-gray-600 mb-1 font-medium">Average</p>
               <motion.p
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.25, type: "spring" }}
-                className="text-xl font-bold text-gray-700"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="text-2xl font-bold text-gray-700"
               >
                 {avgThreats}
               </motion.p>
@@ -584,16 +576,12 @@ function HistoricalTrendsTab({ scanHistory, result }) {
               }`}
             >
               <motion.span
-                animate={trend === 'increasing' ? { y: [-2, 0] } : trend === 'decreasing' ? { y: [2, 0] } : {}}
-                transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+                animate={trend === 'increasing' ? { y: [-2, 0] } : trend === 'decreasing' ? { y: [0, -2] } : {}}
+                transition={{ duration: 1, repeat: Infinity, repeatType: "reverse" }}
               >
-                {trend === 'increasing' && '↑'}
-                {trend === 'decreasing' && '↓'}
-                {trend === 'neutral' && '→'}
+                {trend === 'increasing' ? '📈' : trend === 'decreasing' ? '📉' : '➡️'}
               </motion.span>
-              {trend === 'increasing' && 'Increasing'}
-              {trend === 'decreasing' && 'Decreasing'}
-              {trend === 'neutral' && 'No comparison'}
+              {trend === 'increasing' ? 'Threats Increasing' : trend === 'decreasing' ? 'Threats Decreasing' : 'Stable'}
             </motion.p>
           </motion.div>
 
@@ -603,12 +591,7 @@ function HistoricalTrendsTab({ scanHistory, result }) {
             transition={{ delay: 0.4 }}
           >
             <h4 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-2">
-              <motion.span
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                📊
-              </motion.span>
+              <span>📊</span>
               History
             </h4>
             <ResponsiveContainer width="100%" height={180}>

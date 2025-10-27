@@ -56,16 +56,16 @@ export default function PatternDetection({ patterns, onPatternClick }) {
         </div>
         
         {/* Stats Badge */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {patterns.length > 0 && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200 }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 whitespace-nowrap h-7"
             >
-              <span className="text-xs font-semibold text-blue-700">
-                {getTotalMatches()} threats
+              <span className="text-xs font-semibold text-blue-700 leading-none">
+                {getTotalMatches()} threat{getTotalMatches() !== 1 ? 's' : ''}
               </span>
             </motion.div>
           )}
@@ -73,9 +73,9 @@ export default function PatternDetection({ patterns, onPatternClick }) {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
-            className="px-3 py-1.5 rounded-full bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200"
+            className="flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 whitespace-nowrap h-7"
           >
-            <span className="text-xs font-semibold text-gray-700">
+            <span className="text-xs font-semibold text-gray-700 leading-none">
               {patterns.length} {patterns.length === 1 ? 'type' : 'types'}
             </span>
           </motion.div>
@@ -108,7 +108,7 @@ export default function PatternDetection({ patterns, onPatternClick }) {
                       stiffness: 200
                     }}
                     onClick={() => onPatternClick(pattern)}
-                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     className={`relative bg-gradient-to-br ${config.bgGradient} rounded-2xl p-4 cursor-pointer border-2 ${config.border} transition-all duration-300 group overflow-hidden`}
                   >
@@ -156,7 +156,7 @@ export default function PatternDetection({ patterns, onPatternClick }) {
                     </div>
 
                     {/* Content */}
-                    <div className="relative flex items-start justify-between pl-3">
+                    <div className="relative flex items-start justify-between pl-3 gap-2">
                       <div className="flex-1 min-w-0">
                         {/* Type and Icon */}
                         <div className="flex items-center gap-2 mb-2">
@@ -170,7 +170,7 @@ export default function PatternDetection({ patterns, onPatternClick }) {
                               repeat: Infinity,
                               repeatDelay: 1
                             }}
-                            className="text-lg"
+                            className="text-lg flex-shrink-0"
                           >
                             {config.icon}
                           </motion.span>
@@ -179,19 +179,19 @@ export default function PatternDetection({ patterns, onPatternClick }) {
                           </h4>
                         </div>
 
-                        {/* Severity badge and details */}
+                        {/* Severity badge and details - Single line */}
                         <div className="flex items-center gap-2 flex-wrap">
                           <motion.span
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: index * 0.05 + 0.2 }}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${config.text} bg-white/60 backdrop-blur-sm border border-white/40`}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${config.text} bg-white/60 backdrop-blur-sm border border-white/40 whitespace-nowrap flex-shrink-0`}
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                             {config.label}
                           </motion.span>
                           
-                          <span className="text-xs text-gray-600 font-medium flex items-center gap-1">
+                          <span className="text-xs text-gray-600 font-medium inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0">
                             {pattern.icon}
                             <span className="opacity-60">•</span>
                             <span>{matchText}</span>
@@ -201,7 +201,7 @@ export default function PatternDetection({ patterns, onPatternClick }) {
 
                       {/* Action indicator */}
                       <motion.div
-                        className="flex-shrink-0 ml-3"
+                        className="flex-shrink-0"
                         animate={{ x: [0, 3, 0] }}
                         transition={{ 
                           duration: 1.5,
@@ -218,8 +218,6 @@ export default function PatternDetection({ patterns, onPatternClick }) {
                     {/* Pulse effect on hover */}
                     <motion.div
                       className={`absolute inset-0 rounded-2xl border-2 ${config.border.split(' ')[0]} opacity-0 group-hover:opacity-100 pointer-events-none`}
-                      initial={{ scale: 1 }}
-                      whileHover={{ scale: 1.05 }}
                       transition={{ duration: 0.3 }}
                       style={{
                         boxShadow: `0 0 20px ${config.glow}`,
